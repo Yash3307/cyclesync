@@ -1,0 +1,71 @@
+/* src/app/landing.module.css */
+.landingLayout {
+  --color-surface: #fff1f2;            
+  --color-surface-container: #fce7f3;
+  --color-surface-container-low: #fdf2f8;
+  --color-surface-container-lowest: #ffffff;
+  --color-primary: #ec4899;            
+  --color-primary-container: #fbcfe8;
+  --color-secondary: #a78bfa;          
+  --color-secondary-container: #ddd6fe;
+  --color-on-surface: #1e1b4b;         
+  --color-on-surface-variant: #4b5563;
+  --radius-xl: 1.5rem;                 
+  --radius-2xl: 2rem;
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.landingLayout ::selection {
+  background-color: var(--color-primary-container);
+}
+
+.bgSurface { background-color: var(--color-surface); }
+.textOnSurface { color: var(--color-on-surface); }
+.textOnSurfaceVariant { color: var(--color-on-surface-variant); }
+.textPrimary { color: var(--color-primary); }
+.textSecondary { color: var(--color-secondary); }
+.bgPrimary { background-color: var(--color-primary); }
+.bgSurfaceContainer { background-color: var(--color-surface-container); }
+.bgSurfaceContainerLow { background-color: var(--color-surface-container-low); }
+.bgPrimaryContainer { background-color: var(--color-primary-container); }
+.bgSecondaryContainer { background-color: var(--color-secondary-container); }
+.borderSurfaceContainer { border-color: var(--color-surface-container); }
+
+.bgPrimary20 { background-color: rgba(236, 72, 153, 0.2); }
+
+.glassNav {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.navLink {
+  color: var(--color-on-surface-variant);
+  transition: color 150ms;
+}
+.navLink:hover {
+  color: var(--color-primary);
+}
+
+.hoverTextPrimary {
+  transition: color 150ms;
+}
+.hoverTextPrimary:hover {
+  color: var(--color-primary);
+}
+
+.hoverBgSurfaceContainer {
+  transition: background-color 150ms;
+}
+.hoverBgSurfaceContainer:hover {
+  background-color: var(--color-surface-container);
+}
+
+.btnLogin {
+  background-image: linear-gradient(to right, var(--color-primary-container), var(--color-primary));
+}
