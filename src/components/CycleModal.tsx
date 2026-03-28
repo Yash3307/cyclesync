@@ -23,6 +23,12 @@ export default function CycleModal({ isOpen, onClose, onSuccess, existingCycle }
   const [endDate, setEndDate] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Symptom states
+  const [symptomType, setSymptomType] = useState('');
+  const [symptomSeverity, setSymptomSeverity] = useState<number>(3);
+  const [symptomNotes, setSymptomNotes] = useState('');
+
   const supabase = createClient();
 
   // Reset form when opened or when existingCycle changes
@@ -35,6 +41,9 @@ export default function CycleModal({ isOpen, onClose, onSuccess, existingCycle }
         setStartDate('');
         setEndDate('');
       }
+      setSymptomType('');
+      setSymptomSeverity(3);
+      setSymptomNotes('');
     }
   }, [isOpen, existingCycle]);
 
@@ -54,6 +63,8 @@ export default function CycleModal({ isOpen, onClose, onSuccess, existingCycle }
         return;
       }
 
+      let cycleId = existingCycle?.id;
+
       if (existingCycle && existingCycle.id) {
         // Update
         const { error } = await supabase
@@ -69,16 +80,40 @@ export default function CycleModal({ isOpen, onClose, onSuccess, existingCycle }
         toast.success("Cycle updated successfully.");
       } else {
         // Insert
-        const { error } = await supabase
+        const { data: newCycle, error } = await supabase
           .from('cycles')
           .insert({
             user_id: user.id,
             start_date: startDate,
             end_date: endDate || null
-          });
+          })
+          .select('id')
+          .single();
         
         if (error) throw error;
+        cycleId = newCycle?.id;
         toast.success("Cycle added successfully.");
+      }
+
+      // Save symptom if provided
+      if (symptomType && cycleId) {
+        const { error: symptomError } = await supabase
+          .from('symptoms')
+          .insert({
+            user_id: user.id,
+            cycle_id: cycleId,
+            date: startDate,
+            type: symptomType,
+            severity: symptomSeverity,
+            notes: symptomNotes || null
+          });
+        
+        if (symptomError) {
+          console.error("Failed to save symptom:", symptomError);
+          toast.error("Cycle saved, but symptom failed: " + symptomError.message);
+        } else {
+          toast.success("Symptom logged successfully.");
+        }
       }
 
       onSuccess();
@@ -163,7 +198,69 @@ export default function CycleModal({ isOpen, onClose, onSuccess, existingCycle }
               <p className="text-xs text-gray-500 mt-1">Leave blank if the period is currently ongoing.</p>
             </div>
             
-            {/* If we had symptoms here, they would go here */}
+            {/* Symptom Tracking Section */}
+            <div className="pt-4 mt-2 border-t border-gray-100">
+              <h3 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                Log a Symptom
+                <span className="ml-2 text-xs font-normal text-gray-500">(Optional)</span>
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Symptom Type
+                  </label>
+                  <select
+                    value={symptomType}
+                    onChange={(e) => setSymptomType(e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="">Select a symptom...</option>
+                    <option value="Cramps">Cramps</option>
+                    <option value="Headache">Headache</option>
+                    <option value="Bloating">Bloating</option>
+                    <option value="Fatigue">Fatigue</option>
+                    <option value="Mood Swings">Mood Swings</option>
+                    <option value="Acne">Acne</option>
+                  </select>
+                </div>
+                
+                {symptomType && (
+                  <>
+                    <div>
+                      <label className="flex justify-between text-xs font-medium text-gray-700 mb-1">
+                        <span>Severity</span>
+                        <span className="text-primary-600 font-bold">{symptomSeverity}/5</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="5"
+                        value={symptomSeverity}
+                        onChange={(e) => setSymptomSeverity(parseInt(e.target.value))}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                      />
+                      <div className="flex justify-between text-[10px] text-gray-400 mt-1 px-1">
+                        <span>Mild</span>
+                        <span>Severe</span>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Notes
+                      </label>
+                      <textarea
+                        value={symptomNotes}
+                        onChange={(e) => setSymptomNotes(e.target.value)}
+                        placeholder="Any additional details..."
+                        className="input-field min-h-[60px] text-sm resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </form>
         </div>
 

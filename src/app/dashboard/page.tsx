@@ -39,9 +39,8 @@ export default function Dashboard() {
         const result = calculatePrediction(data);
         setPrediction(result);
 
-        // Store prediction in DB implicitly (optional step for syncing, skipping for now to rely on real-time calc, but we can do it if needed per plan)
         if (result) {
-           await supabase.from('predictions').upsert({
+           const { error: predError } = await supabase.from('predictions').upsert({
               user_id: user.id,
               predicted_start: result.predicted_start,
               predicted_end: result.predicted_end,
@@ -49,8 +48,12 @@ export default function Dashboard() {
               fertile_start: result.fertile_start,
               fertile_end: result.fertile_end,
               ovulation_day: result.ovulation_day
-           }, { onConflict: 'user_id' }); 
-           // Need unique constraint on user_id for pure upsert, assuming one active prediction per user
+           }, { onConflict: 'user_id, predicted_start' }); 
+           
+           if (predError) {
+              console.error("Failed to sync prediction:", predError);
+              toast.error("Failed to sync prediction to database: " + predError.message);
+           }
         }
       }
     }
