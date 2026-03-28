@@ -78,7 +78,8 @@ export default function SettingsPage() {
             return;
          }
 
-         const registration = await navigator.serviceWorker.ready;
+         const registration = await navigator.serviceWorker.register('/sw.js');
+         await navigator.serviceWorker.ready;
          let subscription = await registration.pushManager.getSubscription();
 
          if (!subscription) {
@@ -105,13 +106,18 @@ export default function SettingsPage() {
          const { data: { user } } = await supabase.auth.getUser();
          if (user && subscription) {
             const subData = subscription.toJSON();
-            await supabase.from('push_subscriptions').upsert({
+            const { error: subError } = await supabase.from('push_subscriptions').upsert({
                user_id: user.id,
                endpoint: subData.endpoint,
                p256dh: subData.keys?.p256dh,
                auth: subData.keys?.auth,
                user_agent: navigator.userAgent
             }, { onConflict: 'endpoint' });
+
+            if (subError) {
+               console.error("Failed to save push subscription:", subError);
+               toast.error("Failed to save push subscription to database: " + subError.message);
+            }
          }
       } catch (err) {
          console.error("Failed to subscribe", err);
