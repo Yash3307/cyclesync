@@ -16,6 +16,11 @@ export default function SettingsPage() {
    const [isSaving, setIsSaving] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
 
+   // PWA state
+   const [isIOS, setIsIOS] = useState(false);
+   const [isStandalone, setIsStandalone] = useState(false);
+   const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
+
    const supabase = createClient();
    const router = useRouter();
 
@@ -39,7 +44,34 @@ export default function SettingsPage() {
          setIsLoading(false);
       }
       fetchProfile();
+
+      // Check for iOS and standalone mode
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      const isIOSDevice = /iphone|ipad|ipod/.test(userAgent);
+      const isStandaloneMode = ('standalone' in window.navigator) && !!(window.navigator as any).standalone;
+      setIsIOS(isIOSDevice);
+      setIsStandalone(isStandaloneMode);
+
+      // Listen for Android PWA install prompt
+      const handleBeforeInstallPrompt = (e: Event) => {
+         e.preventDefault();
+         setInstallPromptEvent(e);
+      };
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+      return () => {
+         window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      };
    }, []);
+
+   const handleInstallPWA = async () => {
+      if (!installPromptEvent) return;
+      installPromptEvent.prompt();
+      const { outcome } = await installPromptEvent.userChoice;
+      if (outcome === 'accepted') {
+         setInstallPromptEvent(null);
+      }
+   };
 
    const handleSave = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -49,14 +81,14 @@ export default function SettingsPage() {
       if (!user) return;
 
       // Save profile settings
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: user.id,
-        display_name: displayName,
-        notification_enabled: notificationsEnabled,
-        reminder_days_before: reminderDays,
-      });
+      const { error } = await supabase
+         .from('profiles')
+         .upsert({
+            id: user.id,
+            display_name: displayName,
+            notification_enabled: notificationsEnabled,
+            reminder_days_before: reminderDays,
+         });
 
       if (error) {
          toast.error("Failed to save settings.");
@@ -241,6 +273,25 @@ export default function SettingsPage() {
                               <span>7 days</span>
                            </div>
                         </div>
+
+                        {/* PWA Install Prompts (iOS / Android) */}
+                        {isIOS && !isStandalone && (
+                           <p className="text-sm text-gray-500 italic mt-2">
+                              Note: On iPhone, please "Add to Home Screen" via the Safari Share menu to enable these reminders.
+                           </p>
+                        )}
+
+                        {installPromptEvent && (
+                           <div className="mt-4">
+                              <button
+                                 type="button"
+                                 onClick={handleInstallPWA}
+                                 className="px-4 py-2 bg-pink-500 text-white text-sm font-medium rounded-lg shadow-sm hover:bg-pink-600 focus:outline-none transition-colors"
+                              >
+                                 Add to Home Screen
+                              </button>
+                           </div>
+                        )}
                      </div>
                   </div>
 
