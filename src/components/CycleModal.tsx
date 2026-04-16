@@ -132,10 +132,14 @@ export default function CycleModal({ isOpen, onClose, onSuccess, existingCycle }
 
     setIsDeleting(true);
     try {
+       const { data: { user } } = await supabase.auth.getUser();
+       if (!user) throw new Error("Not logged in");
+
        const { error } = await supabase
           .from('cycles')
           .delete()
-          .eq('id', existingCycle.id);
+          .eq('id', existingCycle.id)
+          .eq('user_id', user.id);
           
        if (error) throw error;
        toast.success("Cycle deleted successfully.");

@@ -35,15 +35,15 @@ serve(async (req) => {
 
   try {
     const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    
+
     // Find users whose required notification date matches today
     // We need: (predicted_start - reminder_days_before) == today
-    
+
     // Instead of doing complex date math in SQL without a function, we'll fetch predictions
     // and profile reminder preference, and compute in JS for simplicity, or do a joined query.
     // Let's do a joined query using Supabase RPC or join if possible.
     // For Deno, let's fetch profiles with notifications enabled and their latest prediction.
-    
+
     const { data: users, error: userError } = await supabase
       .from("profiles")
       .select(`
@@ -61,18 +61,29 @@ serve(async (req) => {
 
     let notificationsSent = 0;
 
+    let testUserId: string | undefined;
+    try {
+      const clonedReq = req.clone();
+      const reqBody = await clonedReq.json();
+      testUserId = reqBody?.user_id;
+    } catch (e) {
+      // Ignored if body is empty or parsing fails
+    }
+
     for (const user of users) {
-      if (!user.predictions || user.predictions.length === 0) continue;
+      if (testUserId && user.id !== testUserId) continue;
+
+      if (!user.predictions || !Array.isArray(user.predictions) || user.predictions.length === 0) continue;
 
       // Sort predictions to get the most recent one (assuming calculated_at is not selected, we just take first if ordered, 
       // but let's assume predictions are usually ordered or we need to filter future ones)
       // For simplicity, find the first prediction in the future.
       const upcomingPeriod = user.predictions.find((p: any) => new Date(p.predicted_start) >= new Date(today));
-      
+
       if (upcomingPeriod) {
         const predictedStart = new Date(upcomingPeriod.predicted_start);
         const reminderDays = user.reminder_days_before || 2;
-        
+
         // Calculate the reminder date
         const reminderDate = new Date(predictedStart);
         reminderDate.setDate(reminderDate.getDate() - reminderDays);
@@ -105,7 +116,7 @@ serve(async (req) => {
               try {
                 await webpush.sendNotification(pushSubscription, payload);
                 notificationsSent++;
-                
+
                 // Log the notification
                 await supabase.from("notifications").insert({
                   user_id: user.id,

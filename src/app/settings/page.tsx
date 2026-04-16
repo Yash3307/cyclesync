@@ -177,16 +177,19 @@ export default function SettingsPage() {
       if (!confirm("Please confirm again. This action CANNOT be undone.")) return;
 
       setIsDeleting(true);
-      // Note: In Supabase, deleting the auth.user requires admin privileges or Edge Function.
-      // To allow users to delete their own account securely from the client, you often need an edge function
-      // or to set up a specific RPC call with SECURITY DEFINER.
-      // For this frontend-only MVP, we will attempt to call an RPC (we haven't made one yet), 
-      // or instruct how they'd do it. Let's provide a mock handler and delete profile data directly as a fallback.
-
-      toast.error("Account deletion requires admin API. For now, we will sign you out.");
-      await supabase.auth.signOut();
-      router.push('/login');
-      setIsDeleting(false);
+      
+      try {
+         const { error } = await supabase.functions.invoke('delete-user');
+         
+         if (error) throw error;
+         
+         toast.success("Account deleted successfully.");
+         await supabase.auth.signOut();
+         router.push('/login');
+      } catch (err: any) {
+         toast.error("Failed to delete account: " + err.message);
+         setIsDeleting(false);
+      }
    };
 
    return (
